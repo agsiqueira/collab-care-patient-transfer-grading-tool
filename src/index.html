@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Patient Transfer Grading Support Tool</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside>
+    <h1>Patient Transfer<br>Grading Tool</h1>
+    <p class="small">SBAR transfer of Juan Gomez from Nursing to Dental care.</p>
+    <button id="loadFolderBtn">Select Transcript Folder</button>
+    <button id="outputFolderBtn">Select Output Folder</button>
+    <button id="gradeAllBtn" disabled>Grade All</button>
+    <button id="openOutputFolderBtn" class="secondary" disabled>Open Output Folder</button>
+    <hr>
+    <label for="strictness">Grading strictness</label>
+    <select id="strictness">
+      <option value="loose">Loose</option>
+      <option value="balanced" selected>Balanced</option>
+      <option value="strict">Strict</option>
+    </select>
+    <hr>
+    <h2>Settings</h2>
+    <label for="apiBaseUrl">API base URL</label>
+    <input id="apiBaseUrl" placeholder="https://api.ai.it.ufl.edu" />
+    <label for="model">Model</label>
+    <input id="model" placeholder="granite-3.3-8b-instruct" />
+    <label for="apiKey">API key</label>
+    <input id="apiKey" type="password" placeholder="Paste key here. Not bundled." />
+    <button id="saveSettingsBtn">Save Settings</button>
+    <button id="clearKeyBtn" class="secondary">Clear API Key</button>
+    <p id="settingsStatus" class="small"></p>
+  </aside>
+
+  <main>
+    <section class="hero">
+      <div class="heroHeader">
+        <div>
+          <h2>How to use this system</h2>
+          <p class="heroIntro">Use this tool to grade patient-transfer transcripts with the saved API settings and export the results automatically.</p>
+        </div>
+        <span class="heroBadge">API-only grading</span>
+      </div>
+      <div class="stepsGrid" aria-label="System workflow">
+        <div class="stepCard"><span>1</span><strong>Select Transcript Folder</strong><p>Choose the folder containing one transcript per student.</p></div>
+        <div class="stepCard"><span>2</span><strong>Select Output Folder</strong><p>Choose where the results folder should be created.</p></div>
+        <div class="stepCard"><span>3</span><strong>Adjust Settings</strong><p>Confirm strictness, API base URL, model, and API key.</p></div>
+        <div class="stepCard"><span>4</span><strong>Grade All</strong><p>Run grading after both folders and the API key are ready.</p></div>
+      </div>
+      <p class="small">Supported transcript files: .docx, .txt, and .vtt. Expected filename pattern: <code>ufname_canvasId_ufid_Transcript-1.docx</code>. Example: <code>careteam1_1329796_98386440</code>, where <code>1329796</code> is the Canvas ID and <code>98386440</code> is the UFID.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panelHeader">
+        <h3>Transcripts</h3>
+        <div id="folderSummary" class="folderSummary" aria-live="polite"></div>
+      </div>
+      <table id="transcriptsTable">
+        <thead>
+          <tr>
+            <th>UF Name</th>
+            <th>UF ID</th>
+            <th>Status</th>
+            <th>Total 0-2 / 0-10</th>
+            <th>Pass</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <div class="panelHeader">
+        <h3>Selected Result</h3>
+        <span id="selectedLabel">None</span>
+      </div>
+      <div id="resultView" class="empty">Click a graded row to review rubric-level feedback.</div>
+    </section>
+  </main>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

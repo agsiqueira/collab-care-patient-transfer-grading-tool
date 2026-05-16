@@ -1,0 +1,55 @@
+{
+  "name": "patient-transfer-grading-support-tool",
+  "version": "0.3.3",
+  "description": "Electron grading support tool for patient transfer transcripts.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win nsis",
+    "dist:mac": "electron-builder --mac dmg"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "exceljs": "^4.4.0",
+    "docx": "^8.5.0",
+    "mammoth": "^1.8.0"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "edu.ufl.patient-transfer-grader",
+    "productName": "Patient Transfer Grading Support Tool",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "${productName} Setup ${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "category": "public.app-category.education"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "asar": true,
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
