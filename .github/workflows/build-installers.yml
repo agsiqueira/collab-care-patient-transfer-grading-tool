@@ -74,7 +74,7 @@ jobs:
 
   build-macos-intel:
     name: Build macOS Intel installer
-    runs-on: macos-13
+    runs-on: macos-14
 
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: false
