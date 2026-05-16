@@ -10,38 +10,12 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build ${{ matrix.platform_name }} installer
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform_name: Windows
-            artifact_name: windows-installer
-            artifact_path: |
-              dist/*.exe
-              dist/*.blockmap
-              dist/latest.yml
-          - os: macos-latest
-            platform_name: macOS Apple Silicon
-            artifact_name: macos-arm64-installer
-            npm_command: npm run dist -- --mac dmg --arm64
-            artifact_path: |
-              dist/*.dmg
-              dist/*.blockmap
-              dist/latest-mac.yml
-          - os: macos-13
-            platform_name: macOS Intel
-            artifact_name: macos-x64-installer
-            npm_command: npm run dist -- --mac dmg --x64
-            artifact_path: |
-              dist/*.dmg
-              dist/*.blockmap
-              dist/latest-mac.yml
-
+  build-windows:
+    name: Build Windows installer
+    runs-on: windows-2022
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -49,24 +23,112 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build installer
-        shell: bash
-        run: ${{ matrix.npm_command || 'npm run dist' }}
+      - name: Build Windows installer
+        run: npm run dist -- --win nsis --x64 --publish=never
 
-      - name: Upload installer artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_path }}
+          name: windows-installer
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
           if-no-files-found: error
 
-      - name: Publish files to GitHub Release
+      - name: Publish Windows files to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.artifact_path }}
+          files: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+
+  build-macos-intel:
+    name: Build macOS Intel installer
+    runs-on: macos-13
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build macOS Intel installer
+        run: npm run dist -- --mac dmg --x64 --publish=never
+
+      - name: Upload macOS Intel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-intel-installer
+          path: |
+            dist/*.dmg
+            dist/*.blockmap
+            dist/latest-mac.yml
+          if-no-files-found: error
+
+      - name: Publish macOS Intel files to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.blockmap
+            dist/latest-mac.yml
+
+  build-macos-apple-silicon:
+    name: Build macOS Apple Silicon installer
+    runs-on: macos-14
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build macOS Apple Silicon installer
+        run: npm run dist -- --mac dmg --arm64 --publish=never
+
+      - name: Upload macOS Apple Silicon artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-apple-silicon-installer
+          path: |
+            dist/*.dmg
+            dist/*.blockmap
+            dist/latest-mac.yml
+          if-no-files-found: error
+
+      - name: Publish macOS Apple Silicon files to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.blockmap
+            dist/latest-mac.yml
