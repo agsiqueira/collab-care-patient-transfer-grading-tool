@@ -1,21 +1,24 @@
-name: Build Installers
+name: Build and Release
 
 on:
-  workflow_dispatch:
   push:
     tags:
-      - 'v*'
+      - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-windows:
-    name: Build Windows installer
-    runs-on: windows-2022
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: false
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-latest]
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -23,112 +26,49 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: 24
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build Windows installer
-        run: npm run dist -- --win nsis --x64 --publish=never
+      - name: Build distributable
+        run: |
+  if [ "$RUNNER_OS" = "macOS" ]; then
+    npx electron-builder --mac dmg --x64 --arm64
+  else
+    npm run dist
+  fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      - name: Upload Windows artifact
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
+          name: tech-frontiers-pre-talk-grader-${{ matrix.os }}
           path: |
-            dist/*.exe
-            dist/*.blockmap
-            dist/latest.yml
-          if-no-files-found: error
+            dist/*Setup*.exe
+            dist/*.dmg
+          if-no-files-found: warn
 
-      - name: Publish Windows files to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*.exe
-            dist/*.blockmap
-            dist/latest.yml
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
 
-  build-macos-intel:
-    name: Build macOS Intel installer
-    runs-on: macos-13
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: false
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          path: release-artifacts
+          merge-multiple: true
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build macOS Intel installer
-        run: npm run dist -- --mac dmg --x64 --publish=never
-
-      - name: Upload macOS Intel artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-intel-installer
-          path: |
-            dist/*.dmg
-            dist/*.blockmap
-            dist/latest-mac.yml
-          if-no-files-found: error
-
-      - name: Publish macOS Intel files to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Create release and upload installers
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*.dmg
-            dist/*.blockmap
-            dist/latest-mac.yml
-
-  build-macos-apple-silicon:
-    name: Build macOS Apple Silicon installer
-    runs-on: macos-14
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: false
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build macOS Apple Silicon installer
-        run: npm run dist -- --mac dmg --arm64 --publish=never
-
-      - name: Upload macOS Apple Silicon artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-apple-silicon-installer
-          path: |
-            dist/*.dmg
-            dist/*.blockmap
-            dist/latest-mac.yml
-          if-no-files-found: error
-
-      - name: Publish macOS Apple Silicon files to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*.dmg
-            dist/*.blockmap
-            dist/latest-mac.yml
+            release-artifacts/*Setup*.exe
+            release-artifacts/*.dmg
+          generate_release_notes: true
